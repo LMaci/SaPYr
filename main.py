@@ -16,7 +16,7 @@ class Config:
 
         mines_scale = Scale(self.tk, from_=5, to=30, orient=HORIZONTAL, label="Mine count")
         size_scale = Scale(self.tk, from_=5, to=30, orient=HORIZONTAL, label='Minefield size',
-                           command=lambda x: mines_scale.config(to=str((size_scale.get()) * size_scale.get() / 2)))
+                           command=lambda x: mines_scale.config(to=str((size_scale.get()) * size_scale.get() / 2.5)))
         size_scale.set(10)
         apply_button = Button(self.tk, height=2, bg="lime", text="START",
                               command=lambda: self.start(size_scale.get(), mines_scale.get()))
@@ -37,6 +37,8 @@ class Game:
         self.mines = mines
         self.tk = tk
         self._DEFUSED_MINES = 0
+        self._tiles_remaining = size*size-mines
+        self.mine_list = []
         self.buttons = dict({})
         self.start_game(size, mines)
 
@@ -74,6 +76,7 @@ class Game:
             if self.buttons[x][y]["mine"] is False:
                 self.buttons[x][y]["mine"] = True
                 _minecount += 1
+                self.mine_list.append(str(x)+str(y))
                 for row in range(3):
                     for column in range(3):
                         try:
@@ -102,7 +105,9 @@ class Game:
         if button["mine"]:
             self.game_over()
         else:
+            self._tiles_remaining -= 1
             button["obj"].config(text=button["value"])
+            self.game_victory()
 
         if button["value"] == 0:
             for j in range(-1, 2):
@@ -121,6 +126,7 @@ class Game:
             button["flagged"] = True
             if button["mine"]:
                 self._DEFUSED_MINES += 1
+                self.game_victory()
         elif button["flagged"] is True:
             button["obj"].bind(LMB_CLICK, self.on_click_wrapper(LMB_CLICK, button["x"], button["y"]))
             button["obj"].config(text="", bg=self.tk.cget("bg"))
@@ -132,11 +138,15 @@ class Game:
 # WIN/LOSE CONDITIONS
 # # # # # # # # # # # #
     def game_victory(self):
-        win = Toplevel(self.tk)
-        win.title("VICTORY!")
-        l1 = Label(win, text="Victory!").pack()
-        restart = Button(win, text="Restart", height=2, width=6).pack()
-        print("OKNO")
+        if self._tiles_remaining == 0 and self._DEFUSED_MINES == self.mines:
+            for x, y in self.mine_list:
+                self.buttons[int(x)][int(y)]["obj"].unbind("<Button-3>")
+                self.buttons[int(x)][int(y)]["obj"].config(bg="lime")
+            win = Toplevel(self.tk)
+            win.title("VICTORY!")
+            l1 = Label(win, text="Victory! :)").pack()
+            win.geometry("300x150")
+            restart = Button(win, text="Restart", height=2, width=6).pack()
 
     def game_over(self):
         for x in range(self.size):
